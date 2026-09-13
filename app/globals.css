@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-heading);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 1px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-peach-50: var(--peach-50);
+  --color-peach-100: var(--peach-100);
+  --color-peach-200: var(--peach-200);
+  --color-peach-300: var(--peach-300);
+  --color-peach-400: var(--peach-400);
+  --color-peach-500: var(--peach-500);
+  --color-peach-600: var(--peach-600);
+}
+
+/* ─── Light Mode ─── */
+:root {
+  --background: #FEFCFB;
+  --foreground: #0C0A09;
+  --card: #FFFFFF;
+  --card-foreground: #0C0A09;
+  --popover: #FFFFFF;
+  --popover-foreground: #0C0A09;
+  --primary: #0C0A09;
+  --primary-foreground: #FEFCFB;
+  --secondary: #FDF2EE;
+  --secondary-foreground: #0C0A09;
+  --muted: #FDF2EE;
+  --muted-foreground: #A8897F;
+  --accent: #FAE4DC;
+  --accent-foreground: #0C0A09;
+  --destructive: #E5484D;
+  --destructive-foreground: #FEFCFB;
+  --border: #F2E4DE;
+  --input: #F2E4DE;
+  --ring: #E8B4A0;
+  --radius: 0.75rem;
+
+  /* Custom peach palette */
+  --peach-50: #FEF8F5;
+  --peach-100: #FDF2EE;
+  --peach-200: #FAE4DC;
+  --peach-300: #F5C6B4;
+  --peach-400: #EDA088;
+  --peach-500: #E07B60;
+  --peach-600: #C95C3E;
+}
+
+/* ─── Dark Mode ─── */
+.dark {
+  --background: #0C0A09;
+  --foreground: #FEFCFB;
+  --card: #1A1512;
+  --card-foreground: #FEFCFB;
+  --popover: #1A1512;
+  --popover-foreground: #FEFCFB;
+  --primary: #FEFCFB;
+  --primary-foreground: #0C0A09;
+  --secondary: #251E1A;
+  --secondary-foreground: #FEFCFB;
+  --muted: #251E1A;
+  --muted-foreground: #8C7A74;
+  --accent: #2E201A;
+  --accent-foreground: #FEFCFB;
+  --destructive: #C9353A;
+  --destructive-foreground: #FEFCFB;
+  --border: #2E201A;
+  --input: #2E201A;
+  --ring: #C27A62;
+
+  --peach-50: #1F1510;
+  --peach-100: #2E201A;
+  --peach-200: #3D2B22;
+  --peach-300: #6B3D2D;
+  --peach-400: #A05B44;
+  --peach-500: #D47A5C;
+  --peach-600: #EDA688;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

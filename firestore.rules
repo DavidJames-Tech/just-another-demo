@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Account, Drive connection, and subscription metadata belong to the signed-in user.
+    match /users/{userId} {
+      allow read: if request.auth != null
+        && request.auth.uid == userId;
+
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && (!request.resource.data.keys().hasAll(['subscriptionStatus'])
+          || request.resource.data.subscriptionStatus == 'free'
+          || request.resource.data.subscriptionStatus == 'payment_submitted')
+        && request.resource.data.keys().hasOnly([
+          'email',
+          'displayName',
+          'photoURL',
+          'lastLoginAt',
+          'pendingVerification',
+          'subscriptionStatus',
+          'subscriptionPlan',
+          'paymentSubmittedAt',
+          'subscriptionCheckBackDate',
+          'subscriptionActivatedAt',
+          'chatStorageDriveConnected',
+          'chatStorageDriveFolderId',
+          'chatStorageDriveEmail',
+          'chatStorageDriveConnectedAt',
+          'uploadDriveConnected',
+          'uploadDriveAccountEmail',
+          'uploadDriveConnectedAt',
+          'driveFolderId',
+          'driveAccountEmail',
+          'driveConnectedAt'
+        ]);
+
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && (
+          // Legacy documents may be updated before the subscription seed exists.
+          (!resource.data.keys().hasAll(['subscriptionStatus'])
+            && !request.resource.data.keys().hasAll(['subscriptionStatus']))
+          || (!resource.data.keys().hasAll(['subscriptionStatus'])
+            && request.resource.data.keys().hasAll(['subscriptionStatus'])
+            && request.resource.data.subscriptionStatus == 'free')
+          || (resource.data.keys().hasAll(['subscriptionStatus'])
+            && request.resource.data.keys().hasAll(['subscriptionStatus'])
+            && (
+              request.resource.data.subscriptionStatus == resource.data.subscriptionStatus
+              || request.resource.data.subscriptionStatus == 'payment_submitted'
+            ))
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email',
+          'displayName',
+          'photoURL',
+          'lastLoginAt',
+          'pendingVerification',
+          'subscriptionStatus',
+          'subscriptionPlan',
+          'paymentSubmittedAt',
+          'subscriptionCheckBackDate',
+          'subscriptionActivatedAt',
+          'chatStorageDriveConnected',
+          'chatStorageDriveFolderId',
+          'chatStorageDriveEmail',
+          'chatStorageDriveConnectedAt',
+          'uploadDriveConnected',
+          'uploadDriveAccountEmail',
+          'uploadDriveConnectedAt',
+          'driveFolderId',
+          'driveAccountEmail',
+          'driveConnectedAt'
+        ]);
+    }
+
+    // Chat content is stored in the user's Google Drive, not Firestore.
+    match /chats/{chatId} {
+      allow read, write: if false;
+    }
+
+    // Deny every collection that has not been explicitly defined above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
