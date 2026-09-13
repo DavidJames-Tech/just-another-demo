@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider delayDuration={200}>
+            <TooltipProvider delay={200}>
               {children}
             </TooltipProvider>
           </AuthProvider>
