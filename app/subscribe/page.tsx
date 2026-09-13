@@ -100,7 +100,7 @@ export default function SubscribePage() {
               href="/signup"
               className="flex h-10 items-center justify-center rounded-lg border border-border bg-background text-[13.5px] font-semibold text-foreground hover:bg-muted/60 transition-colors"
             >
-              Get started free
+                Create account to choose a plan
             </Link>
           </div>
 

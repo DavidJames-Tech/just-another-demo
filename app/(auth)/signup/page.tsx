@@ -43,7 +43,7 @@ export default function SignupPage() {
             Create your workspace
           </h1>
           <p className="text-[13.5px] text-muted-foreground">
-            Start free. No credit card required.
+            Create your account, then choose the plan that fits your work.
           </p>
         </div>
 
