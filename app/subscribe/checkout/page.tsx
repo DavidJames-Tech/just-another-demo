@@ -194,7 +194,7 @@ function CheckoutContent() {
               Nigeria Payments
             </h1>
             <p className="text-[13.5px] text-muted-foreground mb-8">
-              Please transfer the total amount to the bank account below. We will verify your payment and activate your Pro plan.
+              Please transfer the total amount to the account below. A Beamthread support agent is deployed as a regional proxy in Nigeria to help with faster payment verification and workspace setup. Nigerian subscriptions are received and verified through the Beamthread Nigeria Portal.
             </p>
 
             <div className="bg-card border border-border rounded-xl p-6 mb-8 shadow-sm">
@@ -203,22 +203,26 @@ function CheckoutContent() {
                   <p className="text-[11.5px] font-semibold text-muted-foreground uppercase tracking-[0.12em] mb-1">
                     Bank Name
                   </p>
-                  <p className="text-[15px] font-medium text-foreground">Moniepoint</p>
+                  <p className="text-[15px] font-medium text-foreground">UBA</p>
                 </div>
                 <div>
                   <p className="text-[11.5px] font-semibold text-muted-foreground uppercase tracking-[0.12em] mb-1">
                     Account Name
                   </p>
-                  <p className="text-[15px] font-medium text-foreground">David Adakole James</p>
+                  <p className="text-[15px] font-medium text-foreground">Beamthread Nigeria Portal: Attah Blessing Ehi</p>
                 </div>
                 <div>
                   <p className="text-[11.5px] font-semibold text-muted-foreground uppercase tracking-[0.12em] mb-1">
                     Account Number
                   </p>
-                  <p className="text-[24px] font-semibold tracking-tight text-foreground">7087115019</p>
+                  <p className="text-[24px] font-semibold tracking-tight text-foreground">2067475180</p>
                 </div>
               </div>
             </div>
+
+            <p className="mb-8 rounded-xl border border-border bg-muted/30 p-4 text-[12.5px] leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-foreground">Regional verification note:</span> The Nigeria Portal is a Beamthread-authorized proxy for Nigerian subscriptions. Its account receives Nigeria payments so a regional agent can verify transfers and assist with faster plan setup. Your subscription remains associated with your Beamthread account.
+            </p>
 
             <form onSubmit={(e) => { e.preventDefault(); void handlePaymentSubmitted(); }}>
               {paymentError && (
