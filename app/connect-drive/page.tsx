@@ -2,11 +2,19 @@
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { connectGoogleDrive } from "@/lib/google-drive";
 
 export default function ConnectDrivePage() {
+  return (
+    <Suspense fallback={<PageShell><Spinner /></PageShell>}>
+      <ConnectDriveContent />
+    </Suspense>
+  );
+}
+
+function ConnectDriveContent() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
