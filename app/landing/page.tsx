@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/components/auth-provider";
+import { BackgroundBeams } from "@/components/ui/background-beams";
 
 const FEATURES = [
   {
@@ -58,6 +59,7 @@ export default function LandingPage() {
 
       {/* ── Global Background ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <BackgroundBeams />
         <div className="absolute top-[32%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1100px] h-[700px] bg-peach-500/20 dark:bg-peach-500/12 blur-[160px] rounded-[100%]" />
         <div className="absolute bottom-0 right-[-10%] w-[600px] h-[400px] bg-peach-500/8 blur-[100px] rounded-[100%]" />
         <svg className="absolute inset-0 w-full h-full opacity-[0.3] dark:opacity-[0.12] mix-blend-overlay pointer-events-none" xmlns="http://www.w3.org/2000/svg">

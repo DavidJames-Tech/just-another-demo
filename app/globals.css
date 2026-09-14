@@ -115,3 +115,22 @@
     @apply font-sans;
   }
 }
+
+@keyframes beam-dash-flow {
+  from {
+    stroke-dashoffset: 390;
+  }
+  to {
+    stroke-dashoffset: -390;
+  }
+}
+
+.beam-dash {
+  animation: beam-dash-flow 14s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam-dash {
+    animation: none;
+  }
+}
