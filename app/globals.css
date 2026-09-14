@@ -129,6 +129,46 @@
   animation: beam-dash-flow 14s linear infinite;
 }
 
+@keyframes moving-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.moving-border {
+  isolation: isolate;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+
+.moving-border::before {
+  position: absolute;
+  inset: -150%;
+  z-index: -1;
+  content: "";
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 275deg,
+    color-mix(in oklab, var(--peach-400) 85%, white) 315deg,
+    white 335deg,
+    transparent 355deg
+  );
+  animation: moving-border-spin 4.8s linear infinite;
+}
+
+.moving-border > a {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam-dash,
+  .moving-border::before {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .beam-dash {
     animation: none;

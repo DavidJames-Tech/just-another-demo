@@ -8,7 +8,7 @@ const BEAM_PATHS = [
 
 export function BackgroundBeams() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div className="landing-beams pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <svg
         className="absolute inset-0 h-full w-full opacity-70 dark:opacity-80"
         viewBox="0 0 1280 820"

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/components/auth-provider";
 import { BackgroundBeams } from "@/components/ui/background-beams";
+import { MovingBorder } from "@/components/ui/moving-border";
 
 const FEATURES = [
   {
@@ -91,12 +92,11 @@ export default function LandingPage() {
           >
             Sign in
           </Link>
-          <Link
-            href="/signup"
-            className="inline-flex items-center h-8 px-4 bg-foreground text-background text-[13px] font-medium rounded-lg hover:opacity-80 transition-opacity"
-          >
-            Create account
-          </Link>
+          <MovingBorder className="rounded-lg">
+            <Link href="/signup" className="inline-flex h-8 items-center rounded-[7px] bg-foreground px-4 text-[13px] font-medium text-background transition-opacity hover:opacity-80">
+              Create account
+            </Link>
+          </MovingBorder>
         </div>
       </nav>
 
@@ -110,11 +110,14 @@ export default function LandingPage() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-[52px] md:text-[72px] font-semibold tracking-tight leading-[1.05] text-foreground max-w-3xl mb-6">
-          Work smarter.
-          <br />
-          <span className="text-muted-foreground/60">Stay private.</span>
-        </h1>
+        <div className="relative mb-6 isolate">
+          <div className="dark:absolute dark:-inset-x-16 dark:-inset-y-8 dark:-z-10 dark:rounded-[50%] dark:bg-background/55 dark:blur-2xl" aria-hidden="true" />
+          <h1 className="relative text-[52px] md:text-[72px] font-semibold tracking-tight leading-[1.05] text-foreground max-w-3xl">
+            Work smarter.
+            <br />
+            <span className="text-muted-foreground/60">Stay private.</span>
+          </h1>
+        </div>
 
         <p className="text-[16px] text-muted-foreground max-w-[500px] mb-10 leading-relaxed">
           Beamthread is your personal AI workspace. Analyze documents, draft reports,
@@ -123,15 +126,14 @@ export default function LandingPage() {
 
         {/* CTAs */}
         <div className="flex items-center gap-3 mb-24">
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-2 h-11 px-6 bg-foreground text-background text-[14px] font-medium rounded-xl hover:opacity-80 transition-opacity shadow-lg"
-          >
-            Create your account
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </Link>
+          <MovingBorder>
+            <Link href="/signup" className="inline-flex h-11 items-center gap-2 rounded-[11px] bg-foreground px-6 text-[14px] font-medium text-background transition-opacity hover:opacity-80">
+              Create your account
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </Link>
+          </MovingBorder>
           <Link
             href="/login"
             className="inline-flex items-center h-11 px-6 border border-border bg-card/60 text-[14px] font-medium rounded-xl hover:bg-muted/60 transition-colors backdrop-blur-sm"
