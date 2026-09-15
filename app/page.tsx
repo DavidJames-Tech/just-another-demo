@@ -32,7 +32,6 @@ export default function Home() {
   const userId = user?.uid;
   const chatStorageConnected = userData?.chatStorageDriveConnected === true;
   const chatStorageFolderId = userData?.chatStorageDriveFolderId;
-  const subscriptionPending = userData?.subscriptionStatus === "payment_submitted";
 
   // Gate the workspace on both authentication and chat-history storage setup.
   useEffect(() => {
@@ -43,29 +42,17 @@ export default function Home() {
     if (
       !loading &&
       userId &&
-      subscriptionPending
-    ) {
-      router.replace("/subscribe/success");
-      return;
-    }
-    if (
-      !loading &&
-      userId &&
       (!chatStorageConnected || !chatStorageFolderId)
     ) {
       router.replace("/connect-drive");
     }
-  }, [userId, chatStorageConnected, chatStorageFolderId, subscriptionPending, loading, router]);
+  }, [userId, chatStorageConnected, chatStorageFolderId, loading, router]);
 
   const handleSend = async () => {
     if (!query.trim() || !user || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
-      if (subscriptionPending) {
-        router.push("/subscribe/success");
-        return;
-      }
       if (!chatStorageConnected || !chatStorageFolderId) {
         router.push("/connect-drive");
         return;
@@ -82,7 +69,6 @@ export default function Home() {
   if (
     loading ||
     !user ||
-    subscriptionPending ||
     !userData?.chatStorageDriveConnected ||
     !userData.chatStorageDriveFolderId
   ) {

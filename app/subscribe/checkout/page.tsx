@@ -81,7 +81,7 @@ function CheckoutContent() {
         subscriptionCheckBackDate: getCheckBackDate(),
         pendingVerification: true,
       }, { merge: true });
-      router.push("/subscribe/success");
+      router.push("/");
     } catch (error) {
       console.error("Could not submit payment status:", error);
       setPaymentError(

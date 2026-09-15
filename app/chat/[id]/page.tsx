@@ -1,13 +1,14 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { Sidebar } from "@/components/sidebar";
 import { SubscribeBanner } from "@/components/subscribe-banner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { appendChatMessage, ChatMessage, loadChatSession, uploadChatAttachment } from "@/lib/drive-storage";
+import { appendChatMessage, CanvasBlock, ChatAttachment, ChatMessage, loadChatSession, updateChatWorkspace, uploadChatAttachment } from "@/lib/drive-storage";
 import { DriveAuthorizationRequiredError } from "@/lib/google-drive";
+import { WorkspaceCanvas } from "@/components/workspace-canvas";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,28 +17,59 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+const CHAT_MODES = [
+  { id: "analyze", label: "Analyze", prompt: "Analyze this carefully and highlight the most important findings.", icon: "focus" },
+  { id: "summarize", label: "Summarize", prompt: "Summarize this into clear, concise points.", icon: "summary" },
+  { id: "draft", label: "Draft", prompt: "Draft a polished version suitable for professional use.", icon: "draft" },
+  { id: "extract", label: "Extract", prompt: "Extract the key facts, dates, risks, and action items.", icon: "extract" },
+  { id: "research", label: "Research", prompt: "Research this topic and organize the answer with useful context.", icon: "research" },
+] as const;
+
+const PROFESSIONAL_KITS = [
+  { label: "Engineering review", prompt: "Review this for requirements, edge cases, risks, dependencies, and implementation actions.", icon: "engineering" },
+  { label: "Clinical brief", prompt: "Turn this into a concise clinical brief with observations, uncertainties, and follow-up questions.", icon: "clinical" },
+  { label: "Design review", prompt: "Review this design for constraints, materials, decisions, omissions, and coordination issues.", icon: "design" },
+  { label: "Policy brief", prompt: "Prepare a decision-ready policy brief with context, stakeholders, risks, and recommendations.", icon: "policy" },
+  { label: "Research synthesis", prompt: "Synthesize the evidence, separate facts from assumptions, and identify open questions.", icon: "research" },
+] as const;
+
+function ChatIcon({ name, size = 14 }: { name: string; size?: number }) {
+  const paths: Record<string, React.ReactNode> = {
+    focus: <><circle cx="12" cy="12" r="7"/><path d="M12 5V3M12 21v-2M5 12H3m18 0h-2"/></>,
+    summary: <><path d="M5 5h14M5 10h10M5 15h14M5 20h8"/></>,
+    draft: <><path d="m4 17 3 3 13-13-3-3L4 17Z"/><path d="m14 6 3 3"/></>,
+    extract: <><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5M8 17h7"/></>,
+    research: <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></>,
+    engineering: <><path d="m14.7 6.3 3 3M4 20l4.5-1 9.8-9.8a2.1 2.1 0 0 0-3-3L5.5 16 4 20Z"/></>,
+    clinical: <><path d="M12 21s8-4 8-10V5l-8-3-8 3v6c0 6 8 10 8 10Z"/><path d="M9 12h6M12 9v6"/></>,
+    design: <><path d="M4 20 8 4l12 12-16 4Z"/><path d="m8 4 4 12"/></>,
+    policy: <><path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h8M8 15h5"/></>,
+    microphone: <><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></>,
+  };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+}
+
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { user, userData, loading } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState("Loading chat...");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [query, setQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [mode, setMode] = useState("analyze");
+  const [canvasBlocks, setCanvasBlocks] = useState<CanvasBlock[]>([]);
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [isSavingCanvas, setIsSavingCanvas] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/landing");
-      return;
-    }
-
-    if (
-      !loading &&
-      user &&
-      userData?.subscriptionStatus === "payment_submitted"
-    ) {
-      router.replace("/subscribe/success");
       return;
     }
 
@@ -59,6 +91,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         if (!chat) throw new Error("Chat not found");
         setTitle(chat.title);
         setMessages(chat.messages);
+        setAttachments(chat.attachments || []);
+        setMode(chat.mode || "analyze");
+        setCanvasBlocks(chat.canvasBlocks || (chat.canvasNotes ? [{ id: crypto.randomUUID(), type: "text", content: chat.canvasNotes }] : []));
       } catch (error) {
         if (error instanceof DriveAuthorizationRequiredError) {
           router.replace(`/connect-drive?reauthorize=1&returnTo=/chat/${resolvedParams.id}`);
@@ -68,16 +103,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       }
     }
     fetchChat();
-  }, [resolvedParams.id, router, user, userData?.subscriptionStatus, userData?.chatStorageDriveConnected, userData?.chatStorageDriveFolderId, loading]);
+  }, [resolvedParams.id, router, user, userData?.chatStorageDriveConnected, userData?.chatStorageDriveFolderId, loading]);
 
   const handleSend = async () => {
     if (!query.trim() || !user || isSubmitting) return;
     try {
       setIsSubmitting(true);
-      if (userData?.subscriptionStatus === "payment_submitted") {
-        router.push("/subscribe/success");
-        return;
-      }
       const chatStorageFolderId = userData?.chatStorageDriveFolderId;
       if (!userData?.chatStorageDriveConnected || !chatStorageFolderId) {
         router.push("/connect-drive");
@@ -102,7 +133,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     if (!file || !user || !userData?.chatStorageDriveConnected || !chatStorageFolderId || isUploading) return;
     try {
       setIsUploading(true);
-      await uploadChatAttachment(user.uid, chatStorageFolderId, resolvedParams.id, file);
+      const attachment = await uploadChatAttachment(user.uid, chatStorageFolderId, resolvedParams.id, file);
+      setAttachments((current) => [...current, attachment]);
     } catch (error) {
       console.error("Error uploading attachment:", error);
     } finally {
@@ -110,7 +142,72 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   };
 
-  if (loading || !user || userData?.subscriptionStatus === "payment_submitted" || !userData?.chatStorageDriveConnected || !userData.chatStorageDriveFolderId) {
+  const handleVoiceNote = async () => {
+    if (isRecording) {
+      recorderRef.current?.stop();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    const chatStorageFolderId = userData?.chatStorageDriveFolderId;
+    if (!user || !userData?.chatStorageDriveConnected || !chatStorageFolderId) return;
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (error) {
+      console.error("Microphone permission was not granted:", error);
+      return;
+    }
+    const recorder = new MediaRecorder(stream);
+    recordingChunksRef.current = [];
+    recorderRef.current = recorder;
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+    };
+    recorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      setIsRecording(false);
+      const voiceNote = new File(recordingChunksRef.current, `voice-note-${Date.now()}.webm`, { type: recorder.mimeType || "audio/webm" });
+      try {
+        setIsUploading(true);
+        const attachment = await uploadChatAttachment(user.uid, chatStorageFolderId, resolvedParams.id, voiceNote);
+        setAttachments((current) => [...current, attachment]);
+      } catch (error) {
+        console.error("Error uploading voice note:", error);
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    recorder.start();
+    setIsRecording(true);
+  };
+
+  const handleModeChange = async (nextMode: string) => {
+    setMode(nextMode);
+    if (!user || !userData?.chatStorageDriveFolderId) return;
+    try {
+      await updateChatWorkspace(user.uid, userData.chatStorageDriveFolderId, resolvedParams.id, { mode: nextMode, canvasBlocks });
+    } catch (error) {
+      console.error("Error saving chat mode:", error);
+    }
+  };
+
+  const handleSaveCanvas = async () => {
+    if (!user || !userData?.chatStorageDriveFolderId) return;
+    try {
+      setIsSavingCanvas(true);
+      await updateChatWorkspace(user.uid, userData.chatStorageDriveFolderId, resolvedParams.id, { mode, canvasBlocks });
+    } catch (error) {
+      console.error("Error saving workspace canvas:", error);
+    } finally {
+      setIsSavingCanvas(false);
+    }
+  };
+
+  const selectedMode = CHAT_MODES.find((chatMode) => chatMode.id === mode) || CHAT_MODES[0];
+
+  if (loading || !user || !userData?.chatStorageDriveConnected || !userData.chatStorageDriveFolderId) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground" />
@@ -152,12 +249,18 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           </div>
 
           <div className="flex-1 flex justify-end pointer-events-auto">
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setCanvasOpen((open) => !open)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/70 bg-card/40 px-3 text-[12px] font-medium text-muted-foreground backdrop-blur-xl transition-colors hover:bg-card/70 hover:text-foreground dark:border-white/10 dark:bg-white/5" aria-pressed={canvasOpen}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h5M8 16h8"/></svg>
+                Canvas
+              </button>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
         {/* ── Main Chat Interface ── */}
-        <main className="flex-1 flex flex-col items-center justify-end px-4 pb-8 h-full pt-24">
+        <main className={`flex-1 flex flex-col items-center justify-end px-4 pb-8 h-full pt-24 transition-[padding] duration-300 ${canvasOpen ? "lg:pr-[540px]" : ""}`}>
 
           {/* Chat Messages Area */}
           <div className="flex-1 w-full max-w-[720px] flex flex-col gap-6 overflow-y-auto no-scrollbar pt-4 mb-4">
@@ -181,6 +284,22 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           <div className="w-full max-w-[720px]">
             <div className="relative bg-card border border-border rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden transition-shadow focus-within:shadow-[0_4px_24px_rgba(0,0,0,0.09)] focus-within:border-ring/60 dark:bg-card/55 dark:backdrop-blur-xl dark:border-white/10">
 
+              <div className="flex items-center gap-1.5 overflow-x-auto border-b border-border/50 px-4 py-2.5 no-scrollbar">
+                {CHAT_MODES.map((chatMode) => (
+                  <button key={chatMode.id} type="button" onClick={() => void handleModeChange(chatMode.id)} className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-colors ${mode === chatMode.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`} aria-pressed={mode === chatMode.id}><ChatIcon name={chatMode.icon} />{chatMode.label}</button>
+                ))}
+              </div>
+              {attachments.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto px-4 pt-3 no-scrollbar">
+                  {attachments.map((attachment) => (
+                    <span key={attachment.id} className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border/70 bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground dark:border-white/10 dark:bg-white/5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                      {attachment.name}
+                      <span className="text-foreground/50">in context</span>
+                    </span>
+                  ))}
+                </div>
+              )}
               <textarea
                 rows={1}
                 value={query}
@@ -191,19 +310,23 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                     handleSend();
                   }
                 }}
-                placeholder="Ask a follow-up…"
+                placeholder={`${CHAT_MODES.find((chatMode) => chatMode.id === mode)?.label || "Ask"} something about your work…`}
                 className="w-full bg-transparent resize-none outline-none px-5 pt-5 pb-4 text-[15px] placeholder:text-muted-foreground/60 text-foreground min-h-[56px]"
               />
+
+              <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2.5 no-scrollbar">
+                {PROFESSIONAL_KITS.map((kit) => (
+                  <button key={kit.label} type="button" onClick={() => setQuery(kit.prompt)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-background/30 px-2.5 py-1.5 text-[10.5px] text-muted-foreground transition-colors hover:border-ring/60 hover:bg-muted hover:text-foreground dark:border-white/10"><ChatIcon name={kit.icon} size={13} />{kit.label}</button>
+                ))}
+              </div>
 
               <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-1 border-t border-border/50">
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                   <input id="chat-file-upload" type="file" className="hidden" onChange={handleFileSelected} />
                   <DropdownMenu>
                     <DropdownMenuTrigger className="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg bg-secondary text-muted-foreground text-[12px] font-medium hover:bg-accent hover:text-foreground transition-colors whitespace-nowrap shrink-0">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M5 12h14M12 5v14"/>
-                        </svg>
-                        Attach
+                        <ChatIcon name="extract" size={13} />
+                        Attach files
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-48">
                       <DropdownMenuItem onClick={() => document.getElementById("chat-file-upload")?.click()}>
@@ -212,6 +335,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                           <polyline points="13 2 13 9 20 9" />
                         </svg>
                         {isUploading ? "Uploading..." : "Upload from computer"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => void handleVoiceNote()}>
+                        <ChatIcon name="microphone" size={14} />
+                        {isRecording ? "Stop voice note" : "Record voice note"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => router.push("/connect-upload-drive")}>
@@ -224,6 +351,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  <button type="button" onClick={() => void handleVoiceNote()} className={`inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[11px] font-medium transition-colors ${isRecording ? "bg-destructive text-destructive-foreground" : "bg-secondary text-muted-foreground hover:bg-accent hover:text-foreground"}`} aria-pressed={isRecording}>
+                    <ChatIcon name="microphone" size={13} />
+                    {isRecording ? "Stop" : "Voice note"}
+                  </button>
                 </div>
 
                 <button
@@ -255,6 +386,17 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
         </main>
       </div>
+      {canvasOpen && (
+        <WorkspaceCanvas
+          blocks={canvasBlocks}
+          messages={messages}
+          attachments={attachments}
+          saving={isSavingCanvas}
+          onChange={setCanvasBlocks}
+          onSave={() => void handleSaveCanvas()}
+          onClose={() => setCanvasOpen(false)}
+        />
+      )}
     </div>
   );
 }

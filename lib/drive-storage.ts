@@ -17,6 +17,13 @@ export interface ChatAttachment {
   size?: number;
 }
 
+export type CanvasBlock =
+  | { id: string; type: "heading"; content: string }
+  | { id: string; type: "text"; content: string }
+  | { id: string; type: "checklist"; content: string; checked: boolean }
+  | { id: string; type: "quote"; content: string; sourceMessageId?: string }
+  | { id: string; type: "file"; content: string; fileId: string };
+
 export interface ChatDocument {
   id: string;
   title: string;
@@ -24,6 +31,9 @@ export interface ChatDocument {
   updatedAt: string;
   messages: ChatMessage[];
   attachments: ChatAttachment[];
+  mode?: string;
+  canvasNotes?: string;
+  canvasBlocks?: CanvasBlock[];
 }
 
 export interface ChatSummary {
@@ -156,6 +166,22 @@ export async function appendChatMessage(
       updatedAt: new Date().toISOString(),
       messages: [...chat.messages, { role: "user" as const, content: message, createdAt: new Date().toISOString() }],
     };
+    await uploadJson(accessToken, folderId, file.name, updatedChat, file.id);
+    return updatedChat;
+  }, { interactive: true });
+}
+
+export async function updateChatWorkspace(
+  userId: string,
+  folderId: string,
+  chatId: string,
+  updates: Pick<ChatDocument, "mode" | "canvasNotes" | "canvasBlocks">
+) {
+  return withGoogleDriveAccess(userId, async (accessToken) => {
+    const file = await findChatFile(accessToken, folderId, chatId);
+    if (!file) throw new Error("This chat no longer exists in Google Drive.");
+    const chat = await downloadChat(accessToken, file.id);
+    const updatedChat = { ...chat, ...updates, updatedAt: new Date().toISOString() };
     await uploadJson(accessToken, folderId, file.name, updatedChat, file.id);
     return updatedChat;
   }, { interactive: true });
